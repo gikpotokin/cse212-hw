@@ -21,8 +21,22 @@ public static class SetsAndMaps
     /// <param name="words">An array of 2-character words (lowercase, no duplicates)</param>
     public static string[] FindPairs(string[] words)
     {
-        // TODO Problem 1 - ADD YOUR CODE HERE
-        return [];
+        var wordSet = new HashSet<string>(words);
+        var pairs = new List<string>();
+
+        foreach (var word in wordSet)
+        {
+            // A word made from two identical letters has no distinct reverse.
+            if (word[0] == word[1])
+                continue;
+
+            var reverse = new string([word[1], word[0]]);
+            // The ordinal comparison ensures each symmetric pair is returned once.
+            if (string.CompareOrdinal(word, reverse) < 0 && wordSet.Contains(reverse))
+                pairs.Add($"{word} & {reverse}");
+        }
+
+        return pairs.ToArray();
     }
 
     /// <summary>
@@ -42,7 +56,14 @@ public static class SetsAndMaps
         foreach (var line in File.ReadLines(filename))
         {
             var fields = line.Split(",");
-            // TODO Problem 2 - ADD YOUR CODE HERE
+            if (fields.Length <= 3)
+                continue;
+
+            var degree = fields[3].Trim();
+            if (degree.Length == 0)
+                continue;
+
+            degrees[degree] = degrees.GetValueOrDefault(degree) + 1;
         }
 
         return degrees;
@@ -66,8 +87,38 @@ public static class SetsAndMaps
     /// </summary>
     public static bool IsAnagram(string word1, string word2)
     {
-        // TODO Problem 3 - ADD YOUR CODE HERE
-        return false;
+        var counts = new Dictionary<char, int>();
+        int characterCount = 0;
+
+        foreach (char rawCharacter in word1)
+        {
+            if (char.IsWhiteSpace(rawCharacter))
+                continue;
+
+            char character = char.ToUpperInvariant(rawCharacter);
+            counts[character] = counts.GetValueOrDefault(character) + 1;
+            characterCount++;
+        }
+
+        int otherCharacterCount = 0;
+        foreach (char rawCharacter in word2)
+        {
+            if (char.IsWhiteSpace(rawCharacter))
+                continue;
+
+            char character = char.ToUpperInvariant(rawCharacter);
+            if (!counts.TryGetValue(character, out int count) || count == 0)
+                return false;
+
+            if (count == 1)
+                counts.Remove(character);
+            else
+                counts[character] = count - 1;
+
+            otherCharacterCount++;
+        }
+
+        return characterCount == otherCharacterCount && counts.Count == 0;
     }
 
     /// <summary>
@@ -96,11 +147,15 @@ public static class SetsAndMaps
 
         var featureCollection = JsonSerializer.Deserialize<FeatureCollection>(json, options);
 
-        // TODO Problem 5:
-        // 1. Add code in FeatureCollection.cs to describe the JSON using classes and properties 
-        // on those classes so that the call to Deserialize above works properly.
-        // 2. Add code below to create a string out each place a earthquake has happened today and its magitude.
-        // 3. Return an array of these string descriptions.
-        return [];
+        if (featureCollection?.Features == null)
+            return [];
+
+        return featureCollection.Features
+            .Where(feature => feature?.Properties?.Place != null &&
+                              feature.Properties.Mag.HasValue)
+            .Select(feature => string.Create(
+                System.Globalization.CultureInfo.InvariantCulture,
+                $"{feature.Properties.Place} - Mag {feature.Properties.Mag.Value}"))
+            .ToArray();
     }
 }
